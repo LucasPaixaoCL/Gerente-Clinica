@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aurora Gestão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            300: '#a5b4fc',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca'
+                        },
+                    },
+                    boxShadow: {
+                        glass: "0 18px 45px rgba(15,23,42,0.8)",
+                        soft: "0 12px 30px rgba(15,23,42,0.55)"
+                    },
+                    borderRadius: {
+                        '2xl': '1.25rem'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/buttons.css') }}">
+</head>
+
+<body class="min-h-screen bg-slate-100 text-slate-900 antialiased relative overflow-x-hidden
+dark:bg-[#020617] dark:text-slate-100">
+
+    <!-- fundo glassy azul/roxo -->
+    <div class="pointer-events-none fixed inset-0 -z-10">
+        <div
+            class="absolute -top-40 left-1/2 -translate-x-1/2 h-[26rem] w-[60rem] rounded-[999px] bg-gradient-to-tr from-indigo-500/40 via-violet-500/40 to-sky-500/40 blur-3xl opacity-90">
+        </div>
+        <div class="absolute bottom-[-8rem] right-[-4rem] h-72 w-72 rounded-full bg-indigo-700/50 blur-3xl opacity-80">
+        </div>
+        <div class="absolute top-1/3 left-[-4rem] h-56 w-56 rounded-full bg-violet-600/40 blur-3xl opacity-80">
+        </div>
+    </div>
+
+    <!-- Navbar -->
+    <header
+        class="sticky top-0 z-20 bg-slate-900/80 backdrop-blur-xl border-b border-indigo-500/40 shadow-[0_10px_30px_rgba(15,23,42,0.9)]">
+        <div class="max-w-6xl mx-auto px-4 md:px-6 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-9 w-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center shadow-soft border border-indigo-300/40">
+                    <span class="text-xs font-black tracking-tighter text-slate-900">AG</span>
+                </div>
+                <div>
+                    <h1
+                        class="text-xl md:text-2xl font-black tracking-tight bg-gradient-to-r from-sky-400 via-indigo-400 to-violet-500 bg-clip-text text-transparent drop-shadow">
+                        Aurora Gestão
+                    </h1>
+                </div>
+            </div>
+
+            <!-- Botão de toggle de tema removido daqui -->
+
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto px-4 md:px-6 py-10 space-y-10">
+
+        <!-- VISÃO GERAL -->
+        <section id="overview" class="grid gap-4 md:grid-cols-3">
+            <div
+                class="rounded-2xl bg-slate-900/80 backdrop-blur-xl p-4 shadow-soft border border-indigo-500/40 hover:border-sky-300 transition">
+                <p class="text-xs font-semibold uppercase tracking-wide text-sky-400">
+                    Receitas do mês
+                </p>
+                <p class="mt-2 text-3xl font-semibold text-sky-300 drop-shadow-sm">
+                    R$ {{ "%.2f"|format(total_receitas_mes or 0) }}
+                </p>
+                <p class="text-[11px] mt-1 text-slate-400">
+                    Inclui vendas de livros, cursos e serviços.
+                </p>
+            </div>
+            <div
+                class="rounded-2xl bg-slate-900/80 backdrop-blur-xl p-4 shadow-soft border border-purple-500/40 hover:border-purple-300 transition">
+                <p class="text-xs font-semibold uppercase tracking-wide text-purple-300">
+                    Despesas do mês
+                </p>
+                <p class="mt-2 text-3xl font-semibold text-purple-200 drop-shadow-sm">
+                    R$ {{ "%.2f"|format(total_despesas_mes or 0) }}
+                </p>
+                <p class="text-[11px] mt-1 text-slate-400">
+                    Custos fixos, operacionais e demais saídas.
+                </p>
+            </div>
+            <div
+                class="rounded-2xl bg-slate-900/80 backdrop-blur-xl p-4 shadow-soft border border-indigo-500/40 hover:border-cyan-300 transition">
+                <p class="text-xs font-semibold uppercase tracking-wide text-emerald-400">
+                    Saldo do mês
+                </p>
+                <p class="mt-2 text-3xl font-semibold drop-shadow-sm
+            {% if saldo_mes >= 0 %}text-emerald-300{% else %}text-rose-300{% endif %}">
+                    R$ {{ "%.2f"|format(saldo_mes or 0) }}
+                </p>
+                <p class="text-[11px] mt-1 text-slate-400">
+                    Visão consolidada de receitas x despesas do período.
+                </p>
+            </div>
+        </section>
+
+        <!-- LANÇAMENTO FINANCEIRO -->
+        <section id="lancamentos"
+            class="bg-slate-900/85 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 overflow-hidden">
+            <div class="p-6 border-b border-slate-800">
+                <h2 class="text-lg font-semibold text-slate-100">Novo lançamento financeiro</h2>
+                <p class="text-sm text-slate-400 mt-1">
+                    Registre receitas (ex: vendas) e despesas gerais.
+                </p>
+            </div>
+            <div class="p-6">
+                <form action="{{ url_for('create') }}" method="post" class="grid gap-3 md:grid-cols-5">
+                    <!-- Campo de data -->
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wide text-slate-300 mb-1">
+                            Data
+                        </label>
+                        <input type="date" name="date" id="date" required onchange="handleDateChange()"
+                            class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                    </div>
+
+                    <!-- Tipo -->
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wide text-slate-300 mb-1">
+                            Tipo
+                        </label>
+                        <select name="kind" required class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm shadow-inner
+                        focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100">
+                            <option value="receita">Receita</option>
+                            <option value="despesa">Despesa</option>
+                        </select>
+                    </div>
+
+                    <!-- Categoria -->
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wide text-slate-300 mb-1">
+                            Categoria
+                        </label>
+                        <input type="text" name="category" required class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm shadow-inner
+                        focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100"
+                            placeholder="Ex: Venda, Consulta, Fixas..." />
+                    </div>
+
+                    <!-- Valor -->
+                    <div>
+                        <label class="block text-xs font-semibold tracking-wide text-slate-300 mb-1">
+                            Valor
+                        </label>
+                        <input type="number" step="0.01" name="amount" required class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm shadow-inner
+                        focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100"
+                            placeholder="0,00" />
+                    </div>
+
+                    <!-- Descrição (textarea tamanho fixo) -->
+                    <div class="md:col-span-5">
+                        <label class="block text-xs font-semibold tracking-wide text-slate-300 mb-1">
+                            Descrição
+                        </label>
+                        <textarea name="description" rows="3" required
+                            class="w-full h-24 rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2.5 text-sm shadow-inner
+                        focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100 resize-none"
+                            placeholder="Ex: Venda curso X, Aluguel, Observações detalhadas..."></textarea>
+                    </div>
+
+
+                    <div class="md:col-span-5 flex justify-end pt-2">
+                        <button type="submit"
+                            class="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 via-indigo-400 to-violet-500
+                        px-6 py-2.5 text-white text-sm font-semibold shadow-lg shadow-indigo-900/70
+                        hover:shadow-[0_0_35px_rgba(79,70,229,0.9)] transition
+                        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-400 focus:ring-offset-slate-950">
+                            Registrar lançamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            </form>
+            </div>
+        </section>
+
+        <!-- CADASTROS RÁPIDOS (Cliente e Produto) -->
+        <section id="cadastros" class="space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-100">Cadastros rápidos</h2>
+                    <p class="text-sm text-slate-400">
+                        Gere clientes e produtos diretamente desta página.
+                    </p>
+                </div>
+            </div>
+
+            <div class="grid gap-6 md:grid-cols-2">
+
+                <!-- CLIENTE -->
+                <div
+                    class="bg-slate-900/85 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 p-6 flex flex-col gap-4 min-h-[230px]">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-slate-100">Novo cliente</h3>
+                        <span
+                            class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-200 border border-slate-700">
+                            Clientes
+                        </span>
+                    </div>
+                    <form action="{{ url_for('clientes_add') }}" method="post" class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-300">Nome</label>
+                            <input type="text" name="nome" required
+                                class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-300">Telefone</label>
+                                <input type="text" name="telefone"
+                                    class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-300">E-mail</label>
+                                <input type="email" name="email"
+                                    class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-[10px] text-slate-500">
+                                Edite clientes pela lista abaixo.
+                            </span>
+                            <button type="submit"
+                                class="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-4 py-1.5 text-[11px] font-semibold text-white shadow-md shadow-indigo-900/70 hover:shadow-[0_0_25px_rgba(79,70,229,0.8)] focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                                Salvar cliente
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- PRODUTO -->
+                <div
+                    class="bg-slate-900/85 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 p-6 flex flex-col gap-4 min-h-[230px]">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-sm font-semibold text-slate-100">Novo produto</h3>
+                        <span
+                            class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800/80 text-slate-200 border border-slate-700">
+                            Produtos
+                        </span>
+                    </div>
+                    <form action="{{ url_for('produtos_add') }}" method="post" class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-medium text-slate-300">Nome</label>
+                            <input type="text" name="nome" required
+                                class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100"
+                                placeholder="Livro, curso, serviço..." />
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-300">Preço</label>
+                                <input type="number" step="0.01" name="preco" required
+                                    class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-medium text-slate-300">Estoque</label>
+                                <input type="number" name="estoque" value="0"
+                                    class="mt-0.5 w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-xs shadow-inner
+                                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between pt-1">
+                            <span class="text-[10px] text-slate-500">
+                                Edite produtos pela lista abaixo.
+                            </span>
+                            <button type="submit"
+                                class="rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-4 py-1.5 text-[11px] font-semibold text-white shadow-md shadow-sky-900/70 hover:shadow-[0_0_25px_rgba(56,189,248,0.8)] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                                Salvar produto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- CONSULTAS + TABELAS -->
+        <section id="consultas-area" class="space-y-4">
+            <!-- BLOCO AGENDAR CONSULTA -->
+            <div
+                class="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/50 p-6 space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-100">Agendar consulta</h2>
+                        <p class="text-sm text-slate-400">
+                            Consultas ficam agendadas neste bloco até serem concluídas.
+                        </p>
+                    </div>
+                </div>
+                <form action="{{ url_for('consultas_add') }}" method="post" class="grid gap-4 md:grid-cols-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">ID cliente</label>
+                        <input type="number" name="cliente_id" required class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100"
+                            placeholder="Ex: 1" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Data</label>
+                        <input type="date" name="data" required
+                            class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" name="valor" class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100"
+                            placeholder="0,00" />
+                    </div>
+                    <div class="md:col-span-4">
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Descrição</label>
+                        <textarea name="descricao" rows="2" required
+                            class="w-full rounded-xl border border-slate-700 bg-slate-900/80 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none resize-none text-slate-100"
+                            placeholder="Ex: Consulta avaliação, retorno, horário, detalhes..."></textarea>
+                    </div>
+                    <div class="md:col-span-4 flex justify-end pt-1">
+                        <button type="submit"
+                            class="rounded-xl bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 px-6 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-900/80 hover:shadow-[0_0_30px_rgba(79,70,229,0.9)] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                            Agendar consulta
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- TABELA CONSULTAS AGENDADAS -->
+            <div
+                class="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 p-4 flex flex-col">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-semibold text-slate-100">Consultas agendadas</h3>
+                    {% if consultas %}
+                    <span class="text-[11px] text-slate-400">
+                        {{ consultas|length }} consulta(s)
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="overflow-x-auto max-h-72">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="bg-slate-950 text-slate-300 uppercase tracking-wide">
+                                <th class="px-3 py-2 text-left">ID</th>
+                                <th class="px-3 py-2 text-left">Data</th>
+                                <th class="px-3 py-2 text-left">Cliente</th>
+                                <th class="px-3 py-2 text-left">Descrição</th>
+                                <th class="px-3 py-2 text-right">Valor</th>
+                                <th class="px-3 py-2 text-center">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800">
+                            {% if consultas %}
+                            {% for con in consultas %}
+                            {# con: [id, data_str, descricao, valor, status, cliente_id, cliente_nome] #}
+                            <tr class="bg-slate-900/80 hover:bg-slate-800/90">
+                                <td class="px-3 py-2 text-slate-200">{{ con[0] }}</td>
+                                <td class="px-3 py-2 text-slate-200">{{ con[1] }}</td>
+                                <td class="px-3 py-2 text-slate-100">
+                                    {{ con[6] or ('#' ~ con[5]) }}
+                                </td>
+                                <td class="px-3 py-2 text-slate-300 max-w-[160px] truncate" title="{{ con[2] }}">
+                                    {{ con[2] }}
+                                </td>
+                                <td class="px-3 py-2 text-slate-300 text-right">
+                                    R$ {{ "%.2f"|format(con[3] or 0) }}
+                                </td>
+                                <td class="px-3 py-2 text-center">
+                                    <div class="inline-flex gap-2">
+                                        <form action="{{ url_for('consultas_done') }}" method="post" class="inline">
+                                            <input type="hidden" name="id" value="{{ con[0] }}" />
+                                            <button type="submit"
+                                                class="px-3 py-1.5 rounded-full text-[10px] font-semibold bg-emerald-500/90 text-white shadow-sm shadow-emerald-900/70 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                                                Feita
+                                            </button>
+                                        </form>
+                                        <form action="{{ url_for('consultas_delete') }}" method="post" class="inline"
+                                            onsubmit="return openDeleteToast('Cancelar consulta ID {{ con[0] }}?', this);">
+                                            <input type="hidden" name="id" value="{{ con[0] }}" />
+                                            <button type="submit"
+                                                class="px-3 py-1.5 rounded-full text-[10px] font-semibold bg-rose-500/90 text-white shadow-sm shadow-rose-900/70 hover:bg-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-400">
+                                                Cancelar
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="px-3 py-4 text-center text-slate-400">
+                                    Nenhuma consulta agendada.
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TABELAS CLIENTES / PRODUTOS -->
+            <div class="grid gap-4 md:grid-cols-2">
+                <!-- CLIENTES -->
+                <div
+                    class="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 p-4 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-100">Clientes cadastrados</h3>
+                        {% if clientes %}
+                        <span class="text-[11px] text-slate-400">
+                            {{ clientes|length }} registro(s)
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="overflow-x-auto max-h-72">
+                        <table class="min-w-full text-xs">
+                            <thead>
+                                <tr class="bg-slate-950 text-slate-300 uppercase tracking-wide">
+                                    <th class="px-3 py-2 text-left">ID</th>
+                                    <th class="px-3 py-2 text-left">Nome</th>
+                                    <th class="px-3 py-2 text-left">Telefone</th>
+                                    <th class="px-3 py-2 text-left">E-mail</th>
+                                    <th class="px-3 py-2 text-center">Editar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                {% if clientes %}
+                                {% for c in clientes %}
+                                <tr class="bg-slate-900/80 hover:bg-slate-800/90">
+                                    <td class="px-3 py-2 text-slate-200">{{ c[0] }}</td>
+                                    <td class="px-3 py-2 text-slate-100">{{ c[1] }}</td>
+                                    <td class="px-3 py-2 text-slate-300">{{ c[2] or '-' }}</td>
+                                    <td class="px-3 py-2 text-slate-300 truncate max-w-[140px]">
+                                        {{ c[3] or '-' }}
+                                    </td>
+                                    <td class="px-3 py-2 text-center">
+
+                                        <!-- From Uiverse.io by vinodjangid07 -->
+                                        <button class="Btn01" data-id="{{ c[0] }}" data-nome="{{ c[1] }}"
+                                            data-telefone="{{ c[2] or '' }}" data-email="{{ c[3] or '' }}"
+                                            onclick="openClienteModal(this)">Edit
+                                            <svg class="svg01" viewBox="0 0 512 512">
+                                                <path
+                                                    d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3 11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2 37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7 253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5 5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4 6.9-13.3l22.7-9.1v32c0 8.8 7.2 16 16 16h32zM362.7 18.7L348.3 33.2 325.7 55.8 314.3 67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3 22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3 18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144 144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z">
+                                                </path>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="px-3 py-4 text-center text-slate-400">
+                                        Nenhum cliente cadastrado.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- PRODUTOS -->
+                <div
+                    class="bg-slate-900/90 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 p-4 flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-slate-100">Produtos cadastrados</h3>
+                        {% if produtos %}
+                        <span class="text-[11px] text-slate-400">
+                            {{ produtos|length }} registro(s)
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="overflow-x-auto max-h-72">
+                        <table class="min-w-full text-xs">
+                            <thead>
+                                <tr class="bg-slate-950 text-slate-300 uppercase tracking-wide">
+                                    <th class="px-3 py-2 text-left">ID</th>
+                                    <th class="px-3 py-2 text-left">Nome</th>
+                                    <th class="px-3 py-2 text-right">Preço</th>
+                                    <th class="px-3 py-2 text-right">Estoque</th>
+                                    <th class="px-3 py-2 text-center">Editar</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800">
+                                {% if produtos %}
+                                {% for p in produtos %}
+                                <tr class="bg-slate-900/80 hover:bg-slate-800/90">
+                                    <td class="px-3 py-2 text-slate-200">{{ p[0] }}</td>
+                                    <td class="px-3 py-2 text-slate-100">{{ p[1] }}</td>
+                                    <td class="px-3 py-2 text-slate-300 text-right">
+                                        R$ {{ "%.2f"|format(p[2]) }}
+                                    </td>
+                                    <td class="px-3 py-2 text-slate-300 text-right">
+                                        {{ p[3] }}
+                                    </td>
+                                    <td class="px-3 py-2 flex justify-center">
+
+                                        <!-- From Uiverse.io by vinodjangid07 -->
+                                        <button class="Btn01" data-id="{{ p[0] }}" data-nome="{{ p[1] }}"
+                                            data-preco="{{ '%.2f'|format(p[2]) }}" data-estoque="{{ p[3] }}"
+                                            onclick="openProdutoModal(this)">Edit
+                                            <svg class="svg01" viewBox="0 0 512 512">
+                                                <path
+                                                    d="M410.3 231l11.3-11.3-33.9-33.9-62.1-62.1L291.7 89.8l-11.3 11.3-22.6 22.6L58.6 322.9c-10.4 10.4-18 23.3-22.2 37.4L1 480.7c-2.5 8.4-.2 17.5 6.1 23.7s15.3 8.5 23.7 6.1l120.3-35.4c14.1-4.2 27-11.8 37.4-22.2L387.7 253.7 410.3 231zM160 399.4l-9.1 22.7c-4 3.1-8.5 5.4-13.3 6.9L59.4 452l23-78.1c1.4-4.9 3.8-9.4 6.9-13.3l22.7-9.1v32c0 8.8 7.2 16 16 16h32zM362.7 18.7L348.3 33.2 325.7 55.8 314.3 67.1l33.9 33.9 62.1 62.1 33.9 33.9 11.3-11.3 22.6-22.6 14.5-14.5c25-25 25-65.5 0-90.5L453.3 18.7c-25-25-65.5-25-90.5 0zm-47.4 168l-144 144c-6.2 6.2-16.4 6.2-22.6 0s-6.2-16.4 0-22.6l144-144c6.2-6.2 16.4-6.2 22.6 0s6.2 16.4 0 22.6z">
+                                                </path>
+                                            </svg>
+                                        </button>
+
+
+
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% else %}
+                                <tr>
+                                    <td colspan="5" class="px-3 py-4 text-center text-slate-400">
+                                        Nenhum produto cadastrado.
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- LISTA DE LANÇAMENTOS -->
+        <section
+            class="bg-slate-950/90 backdrop-blur-xl rounded-2xl shadow-soft border border-indigo-500/40 overflow-hidden">
+            <div class="px-6 pt-6">
+                <div class="flex items-end justify-between gap-4">
+                    <div>
+                        <h2 class="text-lg font-semibold text-slate-100">Lançamentos</h2>
+                        <p class="text-sm text-slate-400">
+                            Movimentações ligadas a clientes, consultas, vendas e despesas. Edição apenas via modal.
+                        </p>
+                    </div>
+                    {% if data %}
+                    <span
+                        class="inline-flex items-center rounded-full bg-slate-900 px-3 py-1 text-xs font-medium text-slate-100 border border-slate-700">
+                        {{ data|length }} registro(s)
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-4 overflow-x-auto">
+                <table class="min-w-full text-sm">
+                    <thead>
+                        <tr
+                            class="bg-slate-950 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-300 border-y border-slate-800">
+                            <th class="px-4 py-3">#</th>
+                            <th class="px-4 py-3">Data</th>
+                            <th class="px-4 py-3">Tipo</th>
+                            <th class="px-4 py-3">Categoria</th>
+                            <th class="px-4 py-3">Descrição</th>
+                            <th class="px-4 py-3">Valor (R$)</th>
+                            <th class="px-4 py-3 text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800">
+                        {% if data and data|length > 0 %}
+                        {% for row in data %}
+                        <tr class="bg-slate-900/80 hover:bg-slate-800/90 transition">
+                            <td class="px-4 py-3 font-semibold text-slate-100 text-center">{{ row[6] }}</td>
+                            <td class="px-4 py-3 text-slate-200">
+                                {{ row[1] }}
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if row[2] == 'receita' %}
+                                <span
+                                    class="inline-flex items-center rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300 border border-emerald-400/40">
+                                    Receita
+                                </span>
+                                {% else %}
+                                <span
+                                    class="inline-flex items-center rounded-full bg-rose-500/10 px-3 py-1 text-xs font-medium text-rose-300 border border-rose-400/40">
+                                    Despesa
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-slate-200">
+                                {{ row[3] }}
+                            </td>
+                            <td class="px-4 py-3 text-slate-200 max-w-xs truncate" title="{{ row[4] }}">
+                                {{ row[4] }}
+                            </td>
+                            <td class="px-4 py-3 text-slate-200">
+                                R$ {{ "%.2f"|format(row[5]) }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-center gap-2">
+                                    <button type="button"
+                                        class="inline-flex items-center rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white shadow-md shadow-indigo-900/80 hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                        data-id="{{ row[0] }}" data-date="{{ row[1] }}" data-kind="{{ row[2] }}"
+                                        data-category="{{ row[3] }}" data-description="{{ row[4] }}"
+                                        data-amount="{{ '%.2f'|format(row[5]) }}" onclick="openEditModal(this)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 mr-1"
+                                            viewBox="0 0 20 20" fill="currentColor">
+                                            <path
+                                                d="M13.586 3.586a2 2 0 0 1 2.828 2.828l-8.486 8.486a2 2 0 0 1-.878.51l-3.284.821a.75.75 0 0 1-.91-.91l.82-3.285a2 2 0 0 1 .511-.878l8.486-8.486z" />
+                                        </svg>
+                                        Atualizar
+                                    </button>
+
+                                    <form action="{{ url_for('delete') }}" method="post"
+                                        onsubmit="return openDeleteToast('Excluir lançamento ID {{ row[0] }}?', this);"
+                                        class="inline">
+                                        <input type="hidden" name="id" value="{{ row[0] }}" />
+                                        <button type="submit" class="button02">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 69 14"
+                                                class="svgIcon02 bin-top02">
+                                                <g clip-path="url(#clip0_35_24)">
+                                                    <path fill="black"
+                                                        d="M20.8232 2.62734L19.9948 4.21304C19.8224 4.54309 19.4808 4.75 19.1085 4.75H4.92857C2.20246 4.75 0 6.87266 0 9.5C0 12.1273 2.20246 14.25 4.92857 14.25H64.0714C66.7975 14.25 69 12.1273 69 9.5C69 6.87266 66.7975 4.75 64.0714 4.75H49.8915C49.5192 4.75 49.1776 4.54309 49.0052 4.21305L48.1768 2.62734C47.3451 1.00938 45.6355 0 43.7719 0H25.2281C23.3645 0 21.6549 1.00938 20.8232 2.62734ZM64.0023 20.0648C64.0397 19.4882 63.5822 19 63.0044 19H5.99556C5.4178 19 4.96025 19.4882 4.99766 20.0648L8.19375 69.3203C8.44018 73.0758 11.6746 76 15.5712 76H53.4288C57.3254 76 60.5598 73.0758 60.8062 69.3203L64.0023 20.0648Z">
+                                                    </path>
+                                                </g>
+                                                <defs>
+                                                    <clipPath id="clip0_35_24">
+                                                        <rect fill="white" height="14" width="69"></rect>
+                                                    </clipPath>
+                                                </defs>
+                                            </svg>
+
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 69 57"
+                                                class="svgIcon02 bin-bottom02">
+                                                <g clip-path="url(#clip0_35_22)">
+                                                    <path fill="black"
+                                                        d="M20.8232 -16.3727L19.9948 -14.787C19.8224 -14.4569 19.4808 -14.25 19.1085 -14.25H4.92857C2.20246 -14.25 0 -12.1273 0 -9.5C0 -6.8727 2.20246 -4.75 4.92857 -4.75H64.0714C66.7975 -4.75 69 -6.8727 69 -9.5C69 -12.1273 66.7975 -14.25 64.0714 -14.25H49.8915C49.5192 -14.25 49.1776 -14.4569 49.0052 -14.787L48.1768 -16.3727C47.3451 -17.9906 45.6355 -19 43.7719 -19H25.2281C23.3645 -19 21.6549 -17.9906 20.8232 -16.3727ZM64.0023 1.0648C64.0397 0.4882 63.5822 0 63.0044 0H5.99556C5.4178 0 4.96025 0.4882 4.99766 1.0648L8.19375 50.3203C8.44018 54.0758 11.6746 57 15.5712 57H53.4288C57.3254 57 60.5598 54.0758 60.8062 50.3203L64.0023 1.0648Z">
+                                                    </path>
+                                                </g>
+                                                <defs>
+                                                    <clipPath id="clip0_35_22">
+                                                        <rect fill="white" height="57" width="69"></rect>
+                                                    </clipPath>
+                                                </defs>
+                                            </svg>
+                                        </button>
+
+
+
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="px-6 py-10 text-center">
+                                <div
+                                    class="mx-auto w-fit rounded-xl border border-dashed border-slate-700 bg-slate-900 px-6 py-4 text-slate-300">
+                                    Nenhum lançamento ainda. Comece registrando vendas, consultas ou despesas. 📜
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de edição de lançamento -->
+    <div id="editModal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/70 backdrop-blur-xl">
+        <div
+            class="w-full max-w-lg rounded-2xl bg-slate-900/95 border border-slate-700 shadow-[0_24px_80px_rgba(15,23,42,0.95)] p-6 relative">
+            <div class="relative mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-100">Editar lançamento</h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        Ajuste os dados do lançamento e salve as alterações.
+                    </p>
+                </div>
+
+                <button type="button" onclick="closeEditModal()"
+                    class="absolute top-2 right-2 rounded-full p-1.5 bg-slate-800 text-slate-100 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    ✕
+                </button>
+            </div>
+
+            <form id="editForm" action="{{ url_for('update') }}" method="post" class="space-y-3">
+                <input type="hidden" name="id" id="editId" />
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Data</label>
+                        <input type="date" name="date" id="editDate" required class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Tipo</label>
+                        <select name="kind" id="editKind" required class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100">
+                            <option value="receita">Receita</option>
+                            <option value="despesa">Despesa</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Categoria</label>
+                        <input type="text" name="category" id="editCategory" required class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 mb-1">Valor (R$)</label>
+                        <input type="number" step="0.01" name="amount" id="editAmount" required class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Descrição</label>
+                    <textarea name="description" id="editDescription" rows="3" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                        focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none resize-none text-slate-100"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeEditModal()"
+                        class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-violet-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-900/80 hover:shadow-[0_0_35px_rgba(79,70,229,0.9)] focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        Salvar alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal edição cliente -->
+    <div id="clienteModal"
+        class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/70 backdrop-blur-xl">
+        <div
+            class="w-full max-w-md rounded-2xl bg-slate-900/95 border border-slate-700 shadow-[0_24px_80px_rgba(15,23,42,0.95)] p-6 relative">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-100">Editar cliente</h3>
+                <button type="button" onclick="closeClienteModal()"
+                    class="rounded-full p-1.5 bg-slate-800 text-slate-100 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    ✕
+                </button>
+
+            </div>
+
+
+            <!-- Form de edição -->
+            <form action="{{ url_for('clientes_update') }}" method="post" class="space-y-3">
+                <input type="hidden" name="id" id="clienteId" />
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Nome</label>
+                    <input type="text" name="nome" id="clienteNome" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Telefone</label>
+                    <input type="text" name="telefone" id="clienteTelefone"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">E-mail</label>
+                    <input type="email" name="email" id="clienteEmail"
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeClienteModal()"
+                        class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="rounded-xl bg-gradient-to-r from-indigo-500 to-violet-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-indigo-900/80 hover:shadow-[0_0_30px_rgba(79,70,229,0.9)] focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                        Salvar
+                    </button>
+                </div>
+            </form>
+
+            <!-- Form de exclusão -->
+            <form action="{{ url_for('clientes_delete') }}" method="post"
+                class="mt-3 flex items-center justify-between text-[11px]"
+                onsubmit="return openDeleteToast('Excluir cliente selecionado? Isso pode remover consultas vinculadas.', this);">
+                <span class="text-slate-500">
+                    Ação permanente.
+                </span>
+                <input type="hidden" name="id" id="clienteDeleteId" />
+                <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-rose-500/60
+                        bg-transparent px-3 py-1.5 font-semibold text-rose-300
+                        shadow-none hover:bg-rose-500/10 hover:text-rose-50
+                        focus:outline-none focus:ring-2 focus:ring-rose-500/60">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8.5 3A1.5 1.5 0 0 0 7.085 4H5a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2h-2.085A1.5 1.5 0 0 0 11.5 3h-3zM6 8a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V8zm6-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z"
+                            clip-rule="evenodd" />
+                        <path d="M4 7h12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" />
+                    </svg>
+                    Excluir cliente
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal edição produto -->
+    <div id="produtoModal"
+        class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/70 backdrop-blur-xl">
+        <div
+            class="w-full max-w-md rounded-2xl bg-slate-900/95 border border-slate-700 shadow-[0_24px_80px_rgba(15,23,42,0.95)] p-6 relative">
+            <div class="flex items-start justify-between mb-4">
+                <h3 class="text-lg font-semibold text-slate-100">Editar produto</h3>
+                <button type="button" onclick="closeProdutoModal()"
+                    class="rounded-full p-1.5 bg-slate-800 text-slate-100 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Form de edição -->
+            <form action="{{ url_for('produtos_update') }}" method="post" class="space-y-3">
+                <input type="hidden" name="id" id="produtoId" />
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Nome</label>
+                    <input type="text" name="nome" id="produtoNome" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Preço</label>
+                    <input type="number" step="0.01" name="preco" id="produtoPreco" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 mb-1">Estoque</label>
+                    <input type="number" name="estoque" id="produtoEstoque" required
+                        class="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm shadow-inner
+                            focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/40 outline-none text-slate-100" />
+                </div>
+
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeProdutoModal()"
+                        class="rounded-xl border border-slate-700 bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-100 hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                    <button type="submit"
+                        class="rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 px-5 py-2 text-xs font-semibold text-white shadow-lg shadow-sky-900/80 hover:shadow-[0_0_30px_rgba(56,189,248,0.9)] focus:outline-none focus:ring-2 focus:ring-sky-400">
+                        Salvar
+                    </button>
+                </div>
+            </form>
+
+            <!-- Form de exclusão -->
+            <form action="{{ url_for('produtos_delete') }}" method="post"
+                class="mt-3 flex items-center justify-between text-[11px]"
+                onsubmit="return openDeleteToast('Excluir produto selecionado? Vendas vinculadas poderão ser afetadas.', this);">
+                <span class="text-slate-500">
+                    Ação permanente.
+                </span>
+                <input type="hidden" name="id" id="produtoDeleteId" />
+                <button type="submit" class="inline-flex items-center gap-1 rounded-lg border border-rose-500/60
+        bg-transparent px-3 py-1.5 font-semibold text-rose-300
+        shadow-none hover:bg-rose-500/10 hover:text-rose-50
+        focus:outline-none focus:ring-2 focus:ring-rose-500/60">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd"
+                            d="M8.5 3A1.5 1.5 0 0 0 7.085 4H5a1 1 0 1 0 0 2h10a1 1 0 1 0 0-2h-2.085A1.5 1.5 0 0 0 11.5 3h-3zM6 8a1 1 0 1 1 2 0v6a1 1 0 1 1-2 0V8zm6-1a1 1 0 0 0-1 1v6a1 1 0 1 0 2 0V8a1 1 0 0 0-1-1z"
+                            clip-rule="evenodd" />
+                        <path d="M4 7h12v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7z" />
+                    </svg>
+                    Excluir produto
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+
+
+    <!-- Toast de confirmação de exclusão -->
+    <div id="toastConfirm" class="fixed bottom-6 right-6 z-50 hidden">
+        <div class="w-full max-w-sm rounded-2xl bg-slate-900/95 border border-slate-700 shadow-2xl
+                px-4 py-3 flex items-start gap-3">
+            <div
+                class="mt-1 h-8 w-8 flex items-center justify-center rounded-full bg-rose-500/15 border border-rose-400/40">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-rose-400" viewBox="0 0 20 20"
+                    fill="currentColor">
+                    <path fill-rule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.6C19.02 16.92 18.133 18 16.772 18H3.228c-1.361 0-2.248-1.08-1.489-3.301l6.518-11.6zM11 14a1 1 0 1 0-2 0 1 1 0 0 0 2 0zm-1-2a.75.75 0 0 0 .75-.75v-3.5a.75.75 0 0 0-1.5 0v3.5A.75.75 0 0 0 10 12z"
+                        clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="flex-1">
+                <p class="text-xs font-semibold text-slate-100" id="toastTitle">
+                    Confirmar exclusão
+                </p>
+                <p class="mt-1 text-[11px] text-slate-300" id="toastMessage">
+                    Tem certeza que deseja excluir este registro?
+                </p>
+                <div class="mt-3 flex justify-end gap-2">
+                    <button type="button" onclick="cancelDeleteToast()"
+                        class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-[11px] font-medium text-slate-200 hover:bg-slate-800">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="confirmDeleteToast()"
+                        class="px-3 py-1.5 rounded-lg bg-gradient-to-r from-rose-500 to-red-500 text-[11px] font-semibold text-white shadow-md shadow-rose-900/60 hover:shadow-[0_0_20px_rgba(248,113,113,0.9)]">
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script src="{{ url_for('static', filename='scripts/modal.js') }}"></script>
+    <script src="{{ url_for('static', filename='scripts/onchange.js') }}"></script>
+
+</body>
+
+</html>
